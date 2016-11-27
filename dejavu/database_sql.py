@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 from itertools import izip_longest
 import Queue
+import sys
 
 import MySQLdb as mysql
 from MySQLdb.cursors import DictCursor
 
 from dejavu.database import Database
+import dejavu.fingerprint
 
 
 class SQLDatabase(Database):
@@ -242,7 +244,7 @@ class SQLDatabase(Database):
             cur.execute(self.INSERT_SONG, (songname, file_hash))
             return cur.lastrowid
 
-    def query(self, hash):
+    def query(self, hashstr):
         """
         Return all tuples associated with hash.
 
@@ -250,12 +252,12 @@ class SQLDatabase(Database):
         database (be careful with that one!).
         """
         # select all if no key
-        query = self.SELECT_ALL if hash is None else self.SELECT
+        query = self.SELECT_ALL if hashstr is None else self.SELECT
 
         with self.cursor() as cur:
-            cur.execute(query)
+            cur.execute(query, hashstr)
             for sid, offset in cur:
-                yield (sid, offset)
+                print sid
 
     def get_iterable_kv_pairs(self):
         """
@@ -283,23 +285,25 @@ class SQLDatabase(Database):
         """
         # Create a dictionary of hash => offset pairs for later lookups
         mapper = {}
-        for hash, offset in hashes:
-            mapper[hash.upper()] = offset
 
         # Get an iteratable of all the hashes we need
         values = mapper.keys()
+        matches = []
 
-        with self.cursor() as cur:
-            for split_values in grouper(values, 1000):
-                # Create our IN part of the query
-                query = self.SELECT_MULTIPLE
-                query = query % ', '.join(['UNHEX(%s)'] * len(split_values))
+        for hash, offset in hashes:
+            hashstr = hash.upper()
+            mapper[hashstr] = offset
+            query = "SELECT song_id, offset FROM fingerprints WHERE HEX(hash) = '" + hashstr + "';"
+            with self.cursor() as cur:
+                cur.execute(query)
+                res = cur.fetchone()
+                if (res is not None):
+                    nseconds = round(float(offset) / dejavu.fingerprint.DEFAULT_FS *
+                                     dejavu.fingerprint.DEFAULT_WINDOW_SIZE * dejavu.fingerprint.DEFAULT_OVERLAP_RATIO, 5)
+                    #print query
+                    matches.append((hashstr, nseconds, res[0]))
 
-                cur.execute(query, split_values)
-
-                for hash, sid, offset in cur:
-                    # (sid, db_offset - song_sampled_offset)
-                    yield (sid, offset - mapper[hash])
+        return matches
 
     def __getstate__(self):
         return (self._options,)

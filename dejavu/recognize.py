@@ -3,7 +3,7 @@ import dejavu.decoder as decoder
 import numpy as np
 import pyaudio
 import time
-
+import sys
 
 class BaseRecognizer(object):
 

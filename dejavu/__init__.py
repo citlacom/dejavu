@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import traceback
 import sys
+import numpy as np
 
 
 class Dejavu(object):
@@ -128,7 +129,18 @@ class Dejavu(object):
         largest = 0
         largest_count = 0
         song_id = -1
+        dtype = np.dtype([('hash', '|S20'), ('second', 'float32'), ('sid', 'int32')])
+        matches = np.array(matches, dtype=dtype)
+        matches = np.sort(matches, order='second')
+
+        print "Total of %d matches\n\n" % (len(matches))
+        for match in matches:
+            hash, second, sid = match
+            print "Matched %s - %s at second %s" % (hash, sid, second)
+        sys.exit()
+
         for tup in matches:
+            print tup
             sid, diff = tup
             if diff not in diff_counter:
                 diff_counter[diff] = {}
