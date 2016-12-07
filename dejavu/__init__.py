@@ -132,47 +132,23 @@ class Dejavu(object):
         dtype = np.dtype([('hash', '|S20'), ('second', 'float32'), ('sid', 'int32')])
         matches = np.array(matches, dtype=dtype)
         matches = np.sort(matches, order='second')
+        match_count = []
+        final_matches = {}
 
         print "Total of %d matches\n\n" % (len(matches))
         for match in matches:
             hash, second, sid = match
-            print "Matched %s - %s at second %s" % (hash, sid, second)
-        sys.exit()
+            round_second = round(second, 0)
+            # Initialize the second count.
+            if not round_second in match_count:
+                match_count[round_second] = 0
+            # Sum up one match.
+            match_count[round_second] += 1
+            # When sum at least 3 matches we consider as final.
+            if match_count[round_second] == 3:
+                final_matches['match'].append({'second' => second, 'sid' => sid})
 
-        for tup in matches:
-            print tup
-            sid, diff = tup
-            if diff not in diff_counter:
-                diff_counter[diff] = {}
-            if sid not in diff_counter[diff]:
-                diff_counter[diff][sid] = 0
-            diff_counter[diff][sid] += 1
-
-            if diff_counter[diff][sid] > largest_count:
-                largest = diff
-                largest_count = diff_counter[diff][sid]
-                song_id = sid
-
-        # extract idenfication
-        song = self.db.get_song_by_id(song_id)
-        if song:
-            # TODO: Clarify what `get_song_by_id` should return.
-            songname = song.get(Dejavu.SONG_NAME, None)
-        else:
-            return None
-
-        # return match info
-        nseconds = round(float(largest) / fingerprint.DEFAULT_FS *
-                         fingerprint.DEFAULT_WINDOW_SIZE *
-                         fingerprint.DEFAULT_OVERLAP_RATIO, 5)
-        song = {
-            Dejavu.SONG_ID : song_id,
-            Dejavu.SONG_NAME : songname,
-            Dejavu.CONFIDENCE : largest_count,
-            Dejavu.OFFSET : int(largest),
-            Dejavu.OFFSET_SECS : nseconds,
-            Database.FIELD_FILE_SHA1 : song.get(Database.FIELD_FILE_SHA1, None),}
-        return song
+        return final_matches
 
     def recognize(self, recognizer, *options, **kwoptions):
         r = recognizer(self)
