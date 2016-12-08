@@ -135,15 +135,10 @@ class Dejavu(object):
         match_count = {}
         final_matches = {'matches' : {}}
 
-        print matches
-
-        print "Total of %d matches\n\n" % (len(matches))
         for match in matches:
             hash, second, sid = match
             # Allow +/- 0.5 adjustment to generate nearest matches.
             range_seconds = set([int(round(second-1)), int(round(second)), int(round(second+1))])
-            print "Range:"
-            print range_seconds
 
             # Initialize the second counters.
             for range_second in range_seconds:
@@ -154,16 +149,19 @@ class Dejavu(object):
             for range_second in range_seconds:
                 match_count[range_second] += 1
 
+        # Find the greater match within seconds range.
+        for match in matches:
+            hash, second, sid = match
+            # Allow +/- 0.5 adjustment to generate nearest matches.
+            range_seconds = set([int(round(second-1)), int(round(second)), int(round(second+1))])
+
             # Get the second with maximum matches.
             maxidx = None
             for k in (range_seconds):
-                print "%d-%d" % (k, match_count[k])
                 if maxidx is None:
                     maxidx = k
                 elif match_count[k] > match_count[maxidx]:
                     maxidx = k
-
-            print "Max second is: %d." % (maxidx)
 
             # When sum at least N matches we consider as final.
             if match_count[maxidx] > 4:
