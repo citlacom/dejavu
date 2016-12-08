@@ -132,21 +132,43 @@ class Dejavu(object):
         dtype = np.dtype([('hash', '|S20'), ('second', 'float32'), ('sid', 'int32')])
         matches = np.array(matches, dtype=dtype)
         matches = np.sort(matches, order='second')
-        match_count = []
-        final_matches = {}
+        match_count = {}
+        final_matches = {'matches' : {}}
+
+        print matches
 
         print "Total of %d matches\n\n" % (len(matches))
         for match in matches:
             hash, second, sid = match
-            round_second = round(second, 0)
-            # Initialize the second count.
-            if not round_second in match_count:
-                match_count[round_second] = 0
-            # Sum up one match.
-            match_count[round_second] += 1
-            # When sum at least 3 matches we consider as final.
-            if match_count[round_second] == 3:
-                final_matches['match'].append({'second' => second, 'sid' => sid})
+            # Allow +/- 0.5 adjustment to generate nearest matches.
+            range_seconds = set([int(round(second-1)), int(round(second)), int(round(second+1))])
+            print "Range:"
+            print range_seconds
+
+            # Initialize the second counters.
+            for range_second in range_seconds:
+                if not range_second in match_count:
+                    match_count[range_second] = 0
+
+            # Sum up one match in the +/- 1 range of the second.
+            for range_second in range_seconds:
+                match_count[range_second] += 1
+
+            # Get the second with maximum matches.
+            maxidx = None
+            for k in (range_seconds):
+                print "%d-%d" % (k, match_count[k])
+                if maxidx is None:
+                    maxidx = k
+                elif match_count[k] > match_count[maxidx]:
+                    maxidx = k
+
+            print "Max second is: %d." % (maxidx)
+
+            # When sum at least N matches we consider as final.
+            if match_count[maxidx] > 4:
+                ## Convert to strings to allow JSON serialization.
+                final_matches['matches'][str(maxidx)] = {'sid' : str(sid), 'matches' : match_count[maxidx]}
 
         return final_matches
 
