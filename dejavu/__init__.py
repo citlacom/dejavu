@@ -135,6 +135,8 @@ class Dejavu(object):
         match_count = {}
         final_matches = {'matches' : {}}
 
+        print matches
+
         for match in matches:
             hash, second, sid = match
             # Allow +/- 0.5 adjustment to generate nearest matches.

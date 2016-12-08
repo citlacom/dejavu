@@ -12,7 +12,7 @@ with open("dejavu.cnf") as f:
 if __name__ == '__main__':
 
     djv = Dejavu(config)
-    filename = "plan_yaros_myriam_6D_sample.wav"
+    filename = "gap_yaros_myriam_sample2.wav"
     video_filename = "/Users/pablocc/Desktop/%s" % (filename)
     json_filename = "/Users/pablocc/Desktop/%s.json" % (filename)
     recognizer = FileRecognizer(djv)
