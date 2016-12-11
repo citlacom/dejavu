@@ -153,7 +153,7 @@ class Dejavu(object):
         # Find the greater match within seconds range.
         for match in matches:
             hash, second, sid = match
-            # Allow +/- 0.5 adjustment to generate nearest matches.
+            # Allow +/- 1 sec adjustment to generate nearest matches.
             range_seconds = set([int(round(second-1)), int(round(second)), int(round(second+1))])
 
             # Get the second with maximum matches.
@@ -167,7 +167,9 @@ class Dejavu(object):
             # When sum at least N matches we consider as final.
             if match_count[maxidx] >= 4:
                 ## Convert to strings to allow JSON serialization.
-                final_matches['matches'][str(maxidx)] = {'sid' : str(sid), 'matches' : match_count[maxidx]}
+                song = self.db.get_song_by_id(sid)
+                songname = song.get(Dejavu.SONG_NAME, None)
+                final_matches['matches'][str(maxidx)] = {'name' : songname, 'sid' : int(sid), 'matches' : match_count[maxidx]}
 
         return final_matches
 
