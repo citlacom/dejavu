@@ -6,6 +6,7 @@ import os
 import traceback
 import sys
 import numpy as np
+import pprint
 
 
 class Dejavu(object):
@@ -135,8 +136,6 @@ class Dejavu(object):
         match_count = {}
         final_matches = {'matches' : {}}
 
-        print matches
-
         for match in matches:
             hash, second, sid = match
             # Allow +/- 0.5 adjustment to generate nearest matches.
@@ -166,7 +165,7 @@ class Dejavu(object):
                     maxidx = k
 
             # When sum at least N matches we consider as final.
-            if match_count[maxidx] > 4:
+            if match_count[maxidx] >= 4:
                 ## Convert to strings to allow JSON serialization.
                 final_matches['matches'][str(maxidx)] = {'sid' : str(sid), 'matches' : match_count[maxidx]}
 
