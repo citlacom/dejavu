@@ -83,10 +83,11 @@ def findClipAlarms(clipPath):
         match['match_ut'] = time.mktime(matchDateTime.timetuple())
         match['creation_date'] = creationDateTimeUTC.strftime("%Y-%m-%d-%H-%M-%S")
         match['camera_id'] = tags['camera_id']
+        match['camera_name'] = tags['camera_name']
         match['clip_path'] = clipPath
         extendedMatches.append(match)
 
-    return {tags['camera_name'] : extendedMatches}
+    return extendedMatches
 
 
 def cmdExec(cmd):
@@ -103,27 +104,40 @@ def cmdExec(cmd):
         print colored("ERROR: Excutable not found %s" % (cmd), 'red')
         exit(1)
 
+def indexByCamera(matches):
+    cameraMatches = {}
+    for match in matches:
+        cameraMatches[match['camera_name']] = match
+    return cameraMatches
+
 
 if __name__ == '__main__':
-
-    matches = {}
-    filename = "plan_yaros_olga_d1_XA20.wav"
-    video_filename = "/tmp/%s" % (filename)
-    json_filename = "/Users/pablocc/Desktop/%s.json" % (filename)
+    matches = []
     srcDir = os.path.expanduser("~/Moduti.fcpbundle/Ejercicios HIIT Olga d1 XA20/Original Media")
 
     print colored("OPENING: %s\n" % (srcDir), 'yellow')
+    count = 0
     if os.path.isdir(srcDir):
         for filename in os.listdir(srcDir):
             if filename.find(".mov") != -1:
                 clipPath = "%s/%s" % (srcDir, filename)
                 print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
-                matches.update(findClipAlarms(clipPath))
-                print matches
-                exit(1)
+                # Merge new matches to our matches result.
+                matches.extend(findClipAlarms(clipPath))
+                if count == 2:
+                    break
+                count += 1
 
-    print matches
-    #with open(json_filename, 'w') as outfile:
-        #json.dump(data, outfile)
-        #print "Matches exported to %s" % (json_filename)
-    # Remove extract audio file in case it exists.
+    # Group matches by Camera.
+    cameras = indexByCamera(matches)
+
+    # Save matches into JSON file.
+    json_filename = os.path.expanduser("~/Desktop/alarm_matches_%s.json" % (time.strftime("%Y%m%d_%H%M%S")))
+
+    try:
+        with open(json_filename, 'w') as outfile:
+            json.dump(cameras, outfile)
+            print "Matches exported to %s" % (json_filename)
+    except Exception, e:
+        print "Failed to export to %s" % (json_filename)
+        print cameras
