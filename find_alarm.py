@@ -1,5 +1,8 @@
+import iso8601
 import json
+import subprocess
 import sys, getopt, os
+import time
 import warnings
 
 from dejavu import Dejavu
@@ -7,6 +10,9 @@ from dejavu.recognize import FileRecognizer
 from termcolor import colored
 from pymediainfo import MediaInfo
 from pprint import pprint
+from datetime import datetime
+from datetime import timedelta
+from dateutil import tz
 
 warnings.filterwarnings("ignore")
 
@@ -16,11 +22,17 @@ warnings.filterwarnings("ignore")
 ffmpeg = '/usr/local/bin/ffmpeg -loglevel error'
 ffprobe = '/usr/local/bin/ffprobe'
 
+# load config from a JSON file (or anything outputting a python dictionary)
+with open("dejavu.cnf") as f:
+    config = json.load(f)
+djv = Dejavu(config)
+recognizer = FileRecognizer(djv)
 
-def getMetaData(filename):
+
+def getMetaData(clipPath):
     tags = {}
     requiredTags = ['comapplequicktimecreationdate', 'comappleproappscameraname', 'comappleproappscameraid', 'file_size', 'frame_rate']
-    media_info = MediaInfo.parse(filename)
+    media_info = MediaInfo.parse(clipPath)
 
     for track in media_info.tracks:
         if track.track_type == 'General':
@@ -29,25 +41,74 @@ def getMetaData(filename):
                 if not hasattr(track, requiredTag):
                     print colored("Required tag %s not found." % (requiredTag), 'red')
                     exit(1)
-
+            #pprint (vars(track))
             tags['creation_date'] = track.comapplequicktimecreationdate
             tags['camera_name'] = track.comappleproappscameraname
             tags['camera_id'] = track.comappleproappscameraid
-            tags['file_size'] = track.file_size
-            tags['frame_rate'] = track.frame_rate
+            tags['duration'] = track.duration
+            #tags['file_size'] = track.file_size
+            #tags['frame_rate'] = track.frame_rate
 
     return tags
 
 
-# load config from a JSON file (or anything outputting a python dictionary)
-with open("dejavu.cnf") as f:
-    config = json.load(f)
+def findClipAlarms(clipPath):
+    extendedMatches = []
+    extractAudioFile = '/tmp/extracted_audio.wav'
+    if os.path.isfile(extractAudioFile):
+        os.remove(extractAudioFile)
+    # Extract wav audio from video.
+    cmd = "%s -i '%s' -ar 44100 '/tmp/extracted_audio.wav'" % (ffmpeg, clipPath)
+    cmdExec(cmd)
+
+    if not os.path.isfile('/tmp/extracted_audio.wav'):
+        print colored("ERROR: Extractact audio from '%s' failed." % (cmd, clipPath), 'red')
+
+    # Get clip EXIF tags.
+    tags = getMetaData(clipPath)
+
+    clipDuration = int(float(tags['duration']) / 1000)
+    print colored("\tFINDING ALARM MATCHES on %d seconds clip." % (clipDuration), 'yellow')
+    matches = recognizer.recognize_file('/tmp/extracted_audio.wav')
+    print colored("\tFOUND %d matches in %d seconds on %d seconds clip."
+                  % (len(matches['matches']), matches['match_time'], clipDuration), 'yellow')
+
+    for second in matches['matches']:
+        match = matches['matches'][second]
+        creationDateTime = iso8601.parse_date(tags['creation_date'])
+        creationDateTimeUTC = creationDateTime.astimezone(tz.gettz('UTC'))
+        # Calculate the match timedate in universal time.
+        matchDateTime = creationDateTimeUTC + timedelta(seconds=match['second'])
+        match['match_date'] = matchDateTime.strftime("%Y-%m-%d-%H-%M-%S")
+        match['match_ut'] = time.mktime(matchDateTime.timetuple())
+        match['creation_date'] = creationDateTimeUTC.strftime("%Y-%m-%d-%H-%M-%S")
+        match['camera_id'] = tags['camera_id']
+        match['clip_path'] = clipPath
+        extendedMatches.append(match)
+
+    return {tags['camera_name'] : extendedMatches}
+
+
+def cmdExec(cmd):
+    """Exec a shell command and print to log"""
+    print "\tCOMMAND EXEC:"
+    print colored("\t" + cmd, 'magenta')
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        print colored("ERROR: Command processing error %s" % (cmd), 'red')
+        exit(1)
+    except OSError:
+        print colored("ERROR: Excutable not found %s" % (cmd), 'red')
+        exit(1)
+
 
 if __name__ == '__main__':
 
-    djv = Dejavu(config)
-    filename = "gap_yaros_myriam_sample2.wav"
-    video_filename = "/Users/pablocc/Desktop/%s" % (filename)
+    matches = {}
+    filename = "plan_yaros_olga_d1_XA20.wav"
+    video_filename = "/tmp/%s" % (filename)
     json_filename = "/Users/pablocc/Desktop/%s.json" % (filename)
     srcDir = os.path.expanduser("~/Moduti.fcpbundle/Ejercicios HIIT Olga d1 XA20/Original Media")
 
@@ -57,13 +118,12 @@ if __name__ == '__main__':
             if filename.find(".mov") != -1:
                 clipPath = "%s/%s" % (srcDir, filename)
                 print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
-                # Return Exif tags
-                tags = getMetaData(clipPath)
-                print tags
+                matches.update(findClipAlarms(clipPath))
+                print matches
+                exit(1)
 
-    #recognizer = FileRecognizer(djv)
-    #matches = recognizer.recognize_file(video_filename)
-    #data = json.dumps(matches)
+    print matches
     #with open(json_filename, 'w') as outfile:
         #json.dump(data, outfile)
         #print "Matches exported to %s" % (json_filename)
+    # Remove extract audio file in case it exists.
