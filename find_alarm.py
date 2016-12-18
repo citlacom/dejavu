@@ -82,6 +82,7 @@ def findClipAlarms(clipPath):
         match['match_date'] = matchDateTime.strftime("%Y-%m-%d-%H-%M-%S")
         match['match_ut'] = time.mktime(matchDateTime.timetuple())
         match['creation_date'] = creationDateTimeUTC.strftime("%Y-%m-%d-%H-%M-%S")
+        match['creation_ut'] = time.mktime(creationDateTimeUTC.timetuple())
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = tags['camera_name']
         match['clip_path'] = clipPath
@@ -107,7 +108,11 @@ def cmdExec(cmd):
 def indexByCamera(matches):
     cameraMatches = {}
     for match in matches:
-        cameraMatches[match['camera_name']] = match
+        # Init the camera list.
+        if not match['camera_name'] in cameraMatches:
+            cameraMatches[match['camera_name']] = []
+        # Append match to cameraMatches items.
+        cameraMatches[match['camera_name']].append(match)
     return cameraMatches
 
 
