@@ -41,7 +41,7 @@ DEFAULT_AMP_MIN = 30
 # Number of cells around an amplitude peak in the spectrogram in order
 # for Dejavu to consider it a spectral peak. Higher values mean less
 # fingerprints and faster matching, but can potentially affect accuracy.
-PEAK_NEIGHBORHOOD_SIZE = 15
+PEAK_NEIGHBORHOOD_SIZE = 13
 # Range from 15 to 25 have worked well for alarms.
 
 ######################################################################

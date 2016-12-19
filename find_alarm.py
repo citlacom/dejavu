@@ -16,8 +16,8 @@ from dateutil import tz
 
 warnings.filterwarnings("ignore")
 
-# mysql -u root -proot dejavu -e "select count(*) from fingerprints;"
-# mysql -u root -proot dejavu -e "delete fro songs;"
+# mysql -u root -proot -h 127.0.0.1 dejavu -e "select count(*) from fingerprints;"
+# mysql -u root -proot -h 127.0.0.1 dejavu -e "delete from songs;"
 # python dejavu.py --fingerprint ./detect wav
 ffmpeg = '/usr/local/bin/ffmpeg -loglevel error'
 ffprobe = '/usr/local/bin/ffprobe'
@@ -73,6 +73,9 @@ def findClipAlarms(clipPath):
     print colored("\tFOUND %d matches in %d seconds on %d seconds clip."
                   % (len(matches['matches']), matches['match_time'], clipDuration), 'yellow')
 
+    #pprint(matches)
+    #exit(1)
+
     for second in matches['matches']:
         match = matches['matches'][second]
         creationDateTime = iso8601.parse_date(tags['creation_date'])
@@ -86,8 +89,11 @@ def findClipAlarms(clipPath):
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = tags['camera_name']
         match['clip_path'] = clipPath
+        match['duration'] = clipDuration
         extendedMatches.append(match)
 
+    #pprint(extendedMatches)
+    #exit(1)
     return extendedMatches
 
 
