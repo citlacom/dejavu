@@ -4,12 +4,12 @@ import subprocess
 import sys, getopt, os
 import time
 import warnings
+import pprint
 
 from dejavu import Dejavu
 from dejavu.recognize import FileRecognizer
 from termcolor import colored
 from pymediainfo import MediaInfo
-from pprint import pprint
 from datetime import datetime
 from datetime import timedelta
 from dateutil import tz
@@ -41,7 +41,6 @@ def getMetaData(clipPath):
                 if not hasattr(track, requiredTag):
                     print colored("Required tag %s not found." % (requiredTag), 'red')
                     exit(1)
-            #pprint (vars(track))
             tags['creation_date'] = track.comapplequicktimecreationdate
             tags['camera_name'] = track.comappleproappscameraname
             tags['camera_id'] = track.comappleproappscameraid
@@ -73,22 +72,19 @@ def findClipAlarms(clipPath):
     print colored("\tFOUND %d matches in %d seconds on %d seconds clip."
                   % (len(matches['matches']), matches['match_time'], clipDuration), 'yellow')
 
-    #pprint(matches)
-    #exit(1)
-
-    for second in matches['matches']:
+    for second in sorted(matches['matches']):
         match = matches['matches'][second]
         creationDateTime = iso8601.parse_date(tags['creation_date'])
         creationDateTimeUTC = creationDateTime.astimezone(tz.gettz('UTC'))
+        # Calculate the match timedate in universal time.
         match['creation_ut'] = time.mktime(creationDateTimeUTC.timetuple())
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = tags['camera_name']
         match['clip_path'] = clipPath
         match['duration'] = clipDuration
         extendedMatches.append(match)
+        print colored("\t%s at %d with %d matches." % (match['name'], match['second'], match['matches']), 'white')
 
-    #pprint(extendedMatches)
-    #exit(1)
     return extendedMatches
 
 

@@ -169,7 +169,7 @@ class Dejavu(object):
                 ## Convert to strings to allow JSON serialization.
                 song = self.db.get_song_by_id(sid)
                 songname = song.get(Dejavu.SONG_NAME, None)
-                final_matches['matches'][str(maxidx)] = {'second' : maxidx, 'name' : songname, 'sid' : int(sid), 'matches' : match_count[maxidx]}
+                final_matches['matches'][maxidx] = {'second' : maxidx, 'name' : songname, 'sid' : int(sid), 'matches' : match_count[maxidx]}
 
         return final_matches
 
