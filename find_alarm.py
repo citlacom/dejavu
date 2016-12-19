@@ -80,11 +80,6 @@ def findClipAlarms(clipPath):
         match = matches['matches'][second]
         creationDateTime = iso8601.parse_date(tags['creation_date'])
         creationDateTimeUTC = creationDateTime.astimezone(tz.gettz('UTC'))
-        # Calculate the match timedate in universal time.
-        matchDateTime = creationDateTimeUTC + timedelta(seconds=match['second'])
-        match['match_date'] = matchDateTime.strftime("%Y-%m-%d-%H-%M-%S")
-        match['match_ut'] = time.mktime(matchDateTime.timetuple())
-        match['creation_date'] = creationDateTimeUTC.strftime("%Y-%m-%d-%H-%M-%S")
         match['creation_ut'] = time.mktime(creationDateTimeUTC.timetuple())
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = tags['camera_name']
