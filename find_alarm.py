@@ -121,7 +121,6 @@ if __name__ == '__main__':
     srcDir = os.path.expanduser("~/Moduti.fcpbundle/Ejercicios HIIT Olga d1 XA20/Original Media")
 
     print colored("OPENING: %s\n" % (srcDir), 'yellow')
-    count = 0
     if os.path.isdir(srcDir):
         for filename in os.listdir(srcDir):
             if filename.find(".mov") != -1:
@@ -129,9 +128,6 @@ if __name__ == '__main__':
                 print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
                 # Merge new matches to our matches result.
                 matches.extend(findClipAlarms(clipPath))
-                if count == 2:
-                    break
-                count += 1
 
     # Group matches by Camera.
     cameras = indexByCamera(matches)
