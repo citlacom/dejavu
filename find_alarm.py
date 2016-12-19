@@ -1,5 +1,6 @@
 import iso8601
 import json
+import re
 import subprocess
 import sys, getopt, os
 import time
@@ -119,7 +120,10 @@ if __name__ == '__main__':
 
     print colored("OPENING: %s\n" % (srcDir), 'yellow')
     if os.path.isdir(srcDir):
-        for filename in os.listdir(srcDir):
+        files = os.listdir(srcDir)
+        # Sort by clip number so we extract cuts in order.
+        ordered_files = sorted(files, key=lambda x: (int(re.sub('\D', '', x)), x))
+        for filename in ordered_files:
             if filename.find(".mov") != -1:
                 clipPath = "%s/%s" % (srcDir, filename)
                 print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
