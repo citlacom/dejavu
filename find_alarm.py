@@ -115,8 +115,38 @@ def indexByCamera(matches):
 
 
 if __name__ == '__main__':
+    oDir = ''
+    iDir = ''
     matches = []
-    srcDir = os.path.expanduser("~/Moduti.fcpbundle/Ejercicios HIIT Olga d1 XA20")
+    usage = 'usage: python find_alarm.py -i <inputDir> -i <outputDir>'
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "i:o:h", ['idir=', 'odir=', 'help'])
+    except getopt.GetoptError:
+        print usage
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-h':
+            print usage
+            sys.exit()
+        elif opt in ("-i", "--idir"):
+            iDir = arg.rstrip('/')
+        elif opt in ("-o", "--odir"):
+            oDir = arg.rstrip('/')
+
+    if not oDir:
+        error = colored("Output directory argument is required.", 'red')
+    elif not iDir:
+        error = colored("Input directory argument is required.", 'red')
+
+    if 'error' in locals():
+        print error
+        print usage
+        sys.exit()
+
+    srcDir = os.path.expanduser(iDir)
+    desDir = os.path.expanduser(oDir)
 
     print colored("OPENING: %s\n" % (srcDir), 'yellow')
     if os.path.isdir(srcDir):
@@ -139,7 +169,7 @@ if __name__ == '__main__':
     cameras = indexByCamera(matches)
 
     # Save matches into JSON file.
-    json_filename = os.path.expanduser("~/Desktop/alarm_matches_%s.json" % (time.strftime("%Y%m%d_%H%M%S")))
+    json_filename = os.path.expanduser("%s/alarm_matches_%s.json" % (desDir, time.strftime("%Y%m%d_%H%M%S")))
 
     try:
         with open(json_filename, 'w') as outfile:
