@@ -116,19 +116,24 @@ def indexByCamera(matches):
 
 if __name__ == '__main__':
     matches = []
-    srcDir = os.path.expanduser("~/Moduti.fcpbundle/Ejercicios HIIT Olga d1 XA20/Original Media")
+    srcDir = os.path.expanduser("~/Moduti.fcpbundle/Ejercicios HIIT Olga d1 XA20")
 
     print colored("OPENING: %s\n" % (srcDir), 'yellow')
     if os.path.isdir(srcDir):
         files = os.listdir(srcDir)
-        # Sort by clip number so we extract cuts in order.
-        ordered_files = sorted(files, key=lambda x: (int(re.sub('\D', '', x)), x))
-        for filename in ordered_files:
+        ordered_files = []
+        # Filter only movies.
+        for filename in files:
             if filename.find(".mov") != -1:
-                clipPath = "%s/%s" % (srcDir, filename)
-                print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
-                # Merge new matches to our matches result.
-                matches.extend(findClipAlarms(clipPath))
+                ordered_files.append(filename)
+
+        # Sort by clip number so we extract cuts in order.
+        ordered_files = sorted(ordered_files, key=lambda x: (int(re.sub('\D', '', x)), x))
+        for filename in ordered_files:
+            clipPath = "%s/%s" % (srcDir, filename)
+            print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
+            # Merge new matches to our matches result.
+            matches.extend(findClipAlarms(clipPath))
 
     # Group matches by Camera.
     cameras = indexByCamera(matches)
