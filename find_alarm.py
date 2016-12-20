@@ -5,11 +5,11 @@ import subprocess
 import sys, getopt, os
 import time
 import warnings
-import pprint
 
 from dejavu import Dejavu
 from dejavu.recognize import FileRecognizer
 from termcolor import colored
+from pprint import pprint
 from pymediainfo import MediaInfo
 from datetime import datetime
 from datetime import timedelta
@@ -84,7 +84,7 @@ def findClipAlarms(clipPath):
         match['clip_path'] = clipPath
         match['duration'] = clipDuration
         extendedMatches.append(match)
-        print colored("\t%s at %d with %d matches." % (match['name'], match['second'], match['matches']), 'white')
+        print colored("\t%s at %f with %d matches." % (match['name'], match['second'], match['matches']), 'white')
 
     return extendedMatches
 

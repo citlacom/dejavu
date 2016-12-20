@@ -1,12 +1,13 @@
+from pprint import pprint
 from dejavu.database import get_database, Database
 import dejavu.decoder as decoder
 import fingerprint
+import math
 import multiprocessing
 import os
 import traceback
 import sys
 import numpy as np
-import pprint
 
 
 class Dejavu(object):
@@ -138,38 +139,22 @@ class Dejavu(object):
 
         for match in matches:
             hash, second, sid = match
-            # Allow +/- 0.5 adjustment to generate nearest matches.
-            range_seconds = set([int(round(second-1)), int(round(second)), int(round(second+1))])
+            index_floor = int(math.floor(second))
+            index_ceil = int(math.ceil(second))
+            song = self.db.get_song_by_id(sid)
+            songname = song.get(Dejavu.SONG_NAME, None)
 
-            # Initialize the second counters.
-            for range_second in range_seconds:
-                if not range_second in match_count:
-                    match_count[range_second] = 0
+            if not index_floor in final_matches['matches']:
+                final_matches['matches'][index_floor] = {'second' : second, 'name' : songname}
+                final_matches['matches'][index_floor]['matches'] = 0
 
-            # Sum up one match in the +/- 1 range of the second.
-            for range_second in range_seconds:
-                match_count[range_second] += 1
+            if not index_ceil in final_matches['matches']:
+                final_matches['matches'][index_ceil] = {'second' : second, 'name' : songname}
+                final_matches['matches'][index_ceil]['matches'] = 0
 
-        # Find the greater match within seconds range.
-        for match in matches:
-            hash, second, sid = match
-            # Allow +/- 1 sec adjustment to generate nearest matches.
-            range_seconds = set([int(round(second-1)), int(round(second)), int(round(second+1))])
-
-            # Get the second with maximum matches.
-            maxidx = None
-            for k in (range_seconds):
-                if maxidx is None:
-                    maxidx = k
-                elif match_count[k] > match_count[maxidx]:
-                    maxidx = k
-
-            # When sum at least N matches we consider as final.
-            if match_count[maxidx] >= 4:
-                ## Convert to strings to allow JSON serialization.
-                song = self.db.get_song_by_id(sid)
-                songname = song.get(Dejavu.SONG_NAME, None)
-                final_matches['matches'][maxidx] = {'second' : maxidx, 'name' : songname, 'sid' : int(sid), 'matches' : match_count[maxidx]}
+            # Sum matches of signals in same second.
+            final_matches['matches'][index_floor]['matches'] += 1
+            final_matches['matches'][index_ceil]['matches'] += 1
 
         return final_matches
 
