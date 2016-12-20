@@ -84,7 +84,7 @@ def findClipAlarms(clipPath):
         match['clip_path'] = clipPath
         match['duration'] = clipDuration
         extendedMatches.append(match)
-        print colored("\t%s at %f with %d matches." % (match['name'], match['second'], match['matches']), 'white')
+        print colored("\t%s at %.2f with %d matches." % (match['name'], match['second'], match['matches']), 'white')
 
     return extendedMatches
 
@@ -146,5 +146,6 @@ if __name__ == '__main__':
             json.dump(cameras, outfile)
             print "Matches exported to %s" % (json_filename)
     except Exception, e:
+        pprint(e)
         print "Failed to export to %s" % (json_filename)
         print cameras

@@ -139,22 +139,15 @@ class Dejavu(object):
 
         for match in matches:
             hash, second, sid = match
-            index_floor = int(math.floor(second))
-            index_ceil = int(math.ceil(second))
+            index = int(second)
             song = self.db.get_song_by_id(sid)
             songname = song.get(Dejavu.SONG_NAME, None)
 
-            if not index_floor in final_matches['matches']:
-                final_matches['matches'][index_floor] = {'second' : second, 'name' : songname}
-                final_matches['matches'][index_floor]['matches'] = 0
-
-            if not index_ceil in final_matches['matches']:
-                final_matches['matches'][index_ceil] = {'second' : second, 'name' : songname}
-                final_matches['matches'][index_ceil]['matches'] = 0
-
+            if not index in final_matches['matches']:
+                final_matches['matches'][index] = {'second' : round(second, 2), 'name' : songname}
+                final_matches['matches'][index]['matches'] = 0
             # Sum matches of signals in same second.
-            final_matches['matches'][index_floor]['matches'] += 1
-            final_matches['matches'][index_ceil]['matches'] += 1
+            final_matches['matches'][index]['matches'] += 1
 
         return final_matches
 
