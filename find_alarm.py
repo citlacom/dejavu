@@ -64,25 +64,48 @@ def findClipAlarms(clipPath):
     if not os.path.isfile('/tmp/extracted_audio.wav'):
         print colored("ERROR: Extractact audio from '%s' failed." % (cmd, clipPath), 'red')
 
+    clockAdjust = {
+        'EOS_DIGITAL' : timedelta(milliseconds=6000),
+        'CANON' : timedelta(milliseconds=0),
+    }
+
     # Get clip EXIF tags.
     tags = getMetaData(clipPath)
 
-    clipDuration = int(float(tags['duration']) / 1000)
-    print colored("\tFINDING ALARM MATCHES on %d seconds clip." % (clipDuration), 'yellow')
+    # Check that camera is defined in the clock adjustment.
+    if not tags['camera_name'] in clockAdjust:
+        print colored("ERROR: Camera '%s' not defined in clock adjustment." % (tags['camera_name']), 'red')
+
+    # Calculate the clip recording time.
+    creationDateTime = iso8601.parse_date(tags['creation_date'])
+    creationDateTimeUTC = creationDateTime.astimezone(tz.gettz('UTC'))
+    durationDelta = timedelta(milliseconds=tags['duration'])
+
+    # For EOS cameras the creation date is the end of the clip
+    # in XA20 is the start, therefore a time adjust is needed.
+    if tags['camera_name'] == 'EOS_DIGITAL':
+        endDateTimeUTC = creationDateTimeUTC
+        creationDateTimeUTC = creationDateTimeUTC - durationDelta
+    else:
+        endDateTimeUTC = creationDateTimeUTC + durationDelta
+
+    # Generate the formatted dates for logging.
+    creationDateTimeString = creationDateTimeUTC.strftime("%Y-%m-%d %H:%M:%S")
+    endDateTimeString = endDateTimeUTC.strftime("%Y-%m-%d %H:%M:%S")
+
+    print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
+    print colored("CLIP RECORDING: %s to %s - duration = %s." \
+                  % (creationDateTimeString, endDateTimeString, str(durationDelta)), 'yellow')
+    print colored("\tFINDING ALARM MATCHES on %d milliseconds clip." % (tags['duration']), 'yellow')
     matches = recognizer.recognize_file('/tmp/extracted_audio.wav')
-    print colored("\tFOUND %d matches in %d seconds on %d seconds clip."
-                  % (len(matches['matches']), matches['match_time'], clipDuration), 'yellow')
+    print colored("\tFOUND %d matches in %d seconds." % (len(matches['matches']), matches['match_time']), 'yellow')
 
     for second in sorted(matches['matches']):
         match = matches['matches'][second]
-        creationDateTime = iso8601.parse_date(tags['creation_date'])
-        creationDateTimeUTC = creationDateTime.astimezone(tz.gettz('UTC'))
         # Calculate the match timedate in universal time.
-        match['creation_ut'] = time.mktime(creationDateTimeUTC.timetuple())
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = tags['camera_name']
         match['clip_path'] = clipPath
-        match['duration'] = clipDuration
         extendedMatches.append(match)
         print colored("\t%s at %.2f with %d signals." % (match['name'], match['second'], match['signals']), 'white')
 
@@ -119,6 +142,7 @@ if __name__ == '__main__':
     iDir = ''
     matches = []
     usage = 'usage: python find_alarm.py -i <inputDir> -i <outputDir>'
+    t = time.time()
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "i:o:h", ['idir=', 'odir=', 'help'])
@@ -161,7 +185,6 @@ if __name__ == '__main__':
         ordered_files = sorted(ordered_files, key=lambda x: (int(re.sub('\D', '', x)), x))
         for filename in ordered_files:
             clipPath = "%s/%s" % (srcDir, filename)
-            print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
             # Merge new matches to our matches result.
             matches.extend(findClipAlarms(clipPath))
 
@@ -170,6 +193,8 @@ if __name__ == '__main__':
 
     # Save matches into JSON file.
     json_filename = os.path.expanduser("%s/alarm_matches_%s.json" % (desDir, time.strftime("%Y%m%d_%H%M%S")))
+    t = time.time() - t
+    print colored("COMPLETED: %d\n" % (t), 'green')
 
     try:
         with open(json_filename, 'w') as outfile:
@@ -177,5 +202,5 @@ if __name__ == '__main__':
             print "Matches exported to %s" % (json_filename)
     except Exception, e:
         pprint(e)
-        print "Failed to export to %s" % (json_filename)
+        print colored("Failed to export to %s" % (json_filename), 'red')
         print cameras
