@@ -55,6 +55,9 @@ def getMetaData(clipPath):
 def findClipAlarms(clipPath):
     extendedMatches = []
     extractAudioFile = '/tmp/extracted_audio.wav'
+
+    print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
+
     if os.path.isfile(extractAudioFile):
         os.remove(extractAudioFile)
     # Extract wav audio from video.
@@ -63,18 +66,21 @@ def findClipAlarms(clipPath):
 
     if not os.path.isfile('/tmp/extracted_audio.wav'):
         print colored("ERROR: Extractact audio from '%s' failed." % (cmd, clipPath), 'red')
+        return
 
     clockAdjust = {
-        'EOS_DIGITAL' : timedelta(milliseconds=6000),
+        'EOS_DIGITAL' : timedelta(milliseconds=4900),
         'CANON' : timedelta(milliseconds=0),
     }
 
     # Get clip EXIF tags.
     tags = getMetaData(clipPath)
+    camera = tags['camera_name']
 
     # Check that camera is defined in the clock adjustment.
-    if not tags['camera_name'] in clockAdjust:
-        print colored("ERROR: Camera '%s' not defined in clock adjustment." % (tags['camera_name']), 'red')
+    if not camera in clockAdjust:
+        print colored("ERROR: Camera '%s' not defined in clock adjustment." % (camera), 'red')
+        return
 
     # Calculate the clip recording time.
     creationDateTime = iso8601.parse_date(tags['creation_date'])
@@ -83,18 +89,23 @@ def findClipAlarms(clipPath):
 
     # For EOS cameras the creation date is the end of the clip
     # in XA20 is the start, therefore a time adjust is needed.
-    if tags['camera_name'] == 'EOS_DIGITAL':
+    if camera == 'EOS_DIGITAL':
         endDateTimeUTC = creationDateTimeUTC
         creationDateTimeUTC = creationDateTimeUTC - durationDelta
     else:
         endDateTimeUTC = creationDateTimeUTC + durationDelta
 
-    # Generate the formatted dates for logging.
-    creationDateTimeString = creationDateTimeUTC.strftime("%Y-%m-%d %H:%M:%S")
-    endDateTimeString = endDateTimeUTC.strftime("%Y-%m-%d %H:%M:%S")
+    # Apply clock adjustments
+    print colored("\tAPPLY %s clock adjustment to %s." \
+                  % (clockAdjust[camera], camera), 'yellow')
+    endDateTimeUTC = endDateTimeUTC - clockAdjust[camera]
+    creationDateTimeUTC = creationDateTimeUTC - clockAdjust[camera]
 
-    print colored("PROCESSING: %s ..." % (clipPath), 'yellow')
-    print colored("CLIP RECORDING: %s to %s - duration = %s." \
+    # Generate the formatted dates for logging.
+    creationDateTimeString = creationDateTimeUTC.strftime('%Y-%m-%d %H:%M:%S.%f')
+    endDateTimeString = endDateTimeUTC.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+    print colored("\tCLIP RECORDING: %s to %s - duration = %s." \
                   % (creationDateTimeString, endDateTimeString, str(durationDelta)), 'yellow')
     print colored("\tFINDING ALARM MATCHES on %d milliseconds clip." % (tags['duration']), 'yellow')
     matches = recognizer.recognize_file('/tmp/extracted_audio.wav')
@@ -103,11 +114,16 @@ def findClipAlarms(clipPath):
     for second in sorted(matches['matches']):
         match = matches['matches'][second]
         # Calculate the match timedate in universal time.
+        match['recording_start_ut'] = time.mktime(creationDateTimeUTC.timetuple())
+        match['recording_end_ut'] = time.mktime(endDateTimeUTC.timetuple())
         match['camera_id'] = tags['camera_id']
-        match['camera_name'] = tags['camera_name']
+        match['camera_name'] = camera
         match['clip_path'] = clipPath
         extendedMatches.append(match)
-        print colored("\t%s at %.2f with %d signals." % (match['name'], match['second'], match['signals']), 'white')
+        matchDateTime = creationDateTimeUTC + timedelta(seconds=match['second'])
+        matchDateTimeStr = matchDateTime.strftime('%Y-%m-%d %H:%M:%S.%f')
+        print colored("\t%s at %.2f - %s with %d signals." \
+                      % (match['name'], match['second'], matchDateTimeStr, match['signals']), 'white')
 
     return extendedMatches
 
@@ -172,7 +188,7 @@ if __name__ == '__main__':
     srcDir = os.path.expanduser(iDir)
     desDir = os.path.expanduser(oDir)
 
-    print colored("OPENING: %s\n" % (srcDir), 'yellow')
+    print colored("\nOPENING DIR: %s\n" % (srcDir), 'yellow')
     if os.path.isdir(srcDir):
         files = os.listdir(srcDir)
         ordered_files = []
@@ -187,6 +203,7 @@ if __name__ == '__main__':
             clipPath = "%s/%s" % (srcDir, filename)
             # Merge new matches to our matches result.
             matches.extend(findClipAlarms(clipPath))
+            print "\n"
 
     # Group matches by Camera.
     cameras = indexByCamera(matches)
@@ -194,7 +211,7 @@ if __name__ == '__main__':
     # Save matches into JSON file.
     json_filename = os.path.expanduser("%s/alarm_matches_%s.json" % (desDir, time.strftime("%Y%m%d_%H%M%S")))
     t = time.time() - t
-    print colored("COMPLETED: %d\n" % (t), 'green')
+    print colored("\nCOMPLETED: %d seconds.\n" % (t), 'green')
 
     try:
         with open(json_filename, 'w') as outfile:
