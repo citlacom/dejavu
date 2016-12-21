@@ -145,9 +145,9 @@ class Dejavu(object):
 
             if not index in final_matches['matches']:
                 final_matches['matches'][index] = {'second' : round(second, 2), 'name' : songname}
-                final_matches['matches'][index]['matches'] = 0
+                final_matches['matches'][index]['signals'] = 0
             # Sum matches of signals in same second.
-            final_matches['matches'][index]['matches'] += 1
+            final_matches['matches'][index]['signals'] += 1
 
         return final_matches
 

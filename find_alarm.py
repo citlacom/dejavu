@@ -84,7 +84,7 @@ def findClipAlarms(clipPath):
         match['clip_path'] = clipPath
         match['duration'] = clipDuration
         extendedMatches.append(match)
-        print colored("\t%s at %.2f with %d matches." % (match['name'], match['second'], match['matches']), 'white')
+        print colored("\t%s at %.2f with %d signals." % (match['name'], match['second'], match['signals']), 'white')
 
     return extendedMatches
 
