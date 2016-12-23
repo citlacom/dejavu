@@ -69,7 +69,7 @@ def findClipAlarms(clipPath):
         return
 
     clockAdjust = {
-        'EOS_DIGITAL' : timedelta(milliseconds=4870),
+        'EOS_DIGITAL' : timedelta(milliseconds=3650),
         'CANON' : timedelta(milliseconds=0),
     }
 
