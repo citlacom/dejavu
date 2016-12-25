@@ -144,7 +144,7 @@ class Dejavu(object):
             songname = song.get(Dejavu.SONG_NAME, None)
 
             if not index in final_matches['matches']:
-                final_matches['matches'][index] = {'second' : round(second, 2), 'name' : songname}
+                final_matches['matches'][index] = {'second' : round(second, 4), 'name' : songname}
                 final_matches['matches'][index]['signals'] = 0
             # Sum matches of signals in same second.
             final_matches['matches'][index]['signals'] += 1

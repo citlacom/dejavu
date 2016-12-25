@@ -68,9 +68,10 @@ def findClipAlarms(clipPath):
         print colored("ERROR: Extractact audio from '%s' failed." % (cmd, clipPath), 'red')
         return
 
+    # Add time to the camera clock that was behind, this delta will be added to the defined camera.
     clockAdjust = {
-        'EOS_DIGITAL' : timedelta(milliseconds=3650),
-        'CANON' : timedelta(milliseconds=0),
+        'EOS_DIGITAL' : timedelta(milliseconds=0),
+        'CANON' : timedelta(milliseconds=4430),
     }
 
     # Get clip EXIF tags.
@@ -90,16 +91,12 @@ def findClipAlarms(clipPath):
     # For EOS cameras the creation date is the end of the clip
     # in XA20 is the start, therefore a time adjust is needed.
     if camera == 'EOS_DIGITAL':
-        endDateTimeUTC = creationDateTimeUTC
         creationDateTimeUTC = creationDateTimeUTC - durationDelta
-    else:
-        endDateTimeUTC = creationDateTimeUTC + durationDelta
 
     # Apply clock adjustments
-    print colored("\tAPPLY %s clock adjustment to %s." \
-                  % (clockAdjust[camera], camera), 'yellow')
-    endDateTimeUTC = endDateTimeUTC - clockAdjust[camera]
-    creationDateTimeUTC = creationDateTimeUTC - clockAdjust[camera]
+    print colored("\t%s CLOCK CORRECTION: +%s." % (camera, str(clockAdjust[camera])), 'yellow')
+    creationDateTimeUTC = creationDateTimeUTC + clockAdjust[camera]
+    endDateTimeUTC = creationDateTimeUTC + durationDelta
 
     # Generate the formatted dates for logging.
     creationDateTimeString = creationDateTimeUTC.strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -114,16 +111,17 @@ def findClipAlarms(clipPath):
     for second in sorted(matches['matches']):
         match = matches['matches'][second]
         # Calculate the match timedate in universal time.
-        match['recording_start_ut'] = time.mktime(creationDateTimeUTC.timetuple())
-        match['recording_end_ut'] = time.mktime(endDateTimeUTC.timetuple())
+        match['recording_start_ut'] = time.mktime(creationDateTimeUTC.timetuple()) + creationDateTimeUTC.microsecond/1e6
+        match['recording_end_ut'] = time.mktime(endDateTimeUTC.timetuple()) + creationDateTimeUTC.microsecond/1e6
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = camera
         match['clip_path'] = clipPath
         extendedMatches.append(match)
         matchDateTime = creationDateTimeUTC + timedelta(seconds=match['second'])
         matchDateTimeStr = matchDateTime.strftime('%Y-%m-%d %H:%M:%S.%f')
-        print colored("\t%s at %.2f - %s with %d signals." \
-                      % (match['name'], match['second'], matchDateTimeStr, match['signals']), 'white')
+        match['start_ut'] = match['recording_start_ut'] + match['second']
+        print colored("\t%s at %.2f - %s - %f - with %d signals." \
+                      % (match['name'], match['second'], matchDateTimeStr, match['start_ut'], match['signals']), 'white')
 
     return extendedMatches
 
