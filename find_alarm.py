@@ -71,7 +71,7 @@ def findClipAlarms(clipPath):
     # Add time to the camera clock that was behind, this delta will be added to the defined camera.
     clockAdjust = {
         'EOS_DIGITAL' : timedelta(milliseconds=0),
-        'CANON' : timedelta(milliseconds=4430),
+        'CANON' : timedelta(milliseconds=4680),
     }
 
     # Get clip EXIF tags.
@@ -120,7 +120,7 @@ def findClipAlarms(clipPath):
         matchDateTime = creationDateTimeUTC + timedelta(seconds=match['second'])
         matchDateTimeStr = matchDateTime.strftime('%Y-%m-%d %H:%M:%S.%f')
         match['start_ut'] = match['recording_start_ut'] + match['second']
-        print colored("\t%s at %.2f - %s - %f - with %d signals." \
+        print colored("\t%s at %.4f - %s - %f - with %d signals." \
                       % (match['name'], match['second'], matchDateTimeStr, match['start_ut'], match['signals']), 'white')
 
     return extendedMatches
