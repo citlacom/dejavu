@@ -28,6 +28,7 @@ with open("dejavu.cnf") as f:
     config = json.load(f)
 djv = Dejavu(config)
 recognizer = FileRecognizer(djv)
+clipsData = []
 
 
 def getMetaData(clipPath):
@@ -108,11 +109,24 @@ def findClipAlarms(clipPath):
     matches = recognizer.recognize_file('/tmp/extracted_audio.wav')
     print colored("\tFOUND %d matches in %d seconds." % (len(matches['matches']), matches['match_time']), 'yellow')
 
+    recordingStartUT = time.mktime(creationDateTimeUTC.timetuple()) + creationDateTimeUTC.microsecond/1e6
+    recordingEndUT = time.mktime(endDateTimeUTC.timetuple()) + creationDateTimeUTC.microsecond/1e6
+
+    # Add the clips data.
+    clipData = {
+        'camera_name' : camera,
+        'clip_path' : clipPath,
+        'recording_start_ut' : recordingStartUT,
+        'recording_end_ut' : recordingEndUT,
+    }
+
+    clipsData.append(clipData)
+
     for second in sorted(matches['matches']):
         match = matches['matches'][second]
         # Calculate the match timedate in universal time.
-        match['recording_start_ut'] = time.mktime(creationDateTimeUTC.timetuple()) + creationDateTimeUTC.microsecond/1e6
-        match['recording_end_ut'] = time.mktime(endDateTimeUTC.timetuple()) + creationDateTimeUTC.microsecond/1e6
+        match['recording_start_ut'] = recordingStartUT
+        match['recording_end_ut'] = recordingEndUT
         match['camera_id'] = tags['camera_id']
         match['camera_name'] = camera
         match['clip_path'] = clipPath
@@ -201,10 +215,12 @@ if __name__ == '__main__':
             clipPath = "%s/%s" % (srcDir, filename)
             # Merge new matches to our matches result.
             matches.extend(findClipAlarms(clipPath))
+            print clipsData
             print "\n"
 
     # Group matches by Camera.
     cameras = indexByCamera(matches)
+    output = {'matches' : cameras, 'clips' : clipsData}
 
     # Save matches into JSON file.
     json_filename = os.path.expanduser("%s/alarm_matches_%s.json" % (desDir, time.strftime("%Y%m%d_%H%M%S")))
@@ -213,9 +229,9 @@ if __name__ == '__main__':
 
     try:
         with open(json_filename, 'w') as outfile:
-            json.dump(cameras, outfile)
+            json.dump(output, outfile)
             print "Matches exported to %s" % (json_filename)
     except Exception, e:
         pprint(e)
         print colored("Failed to export to %s" % (json_filename), 'red')
-        print cameras
+        print output
