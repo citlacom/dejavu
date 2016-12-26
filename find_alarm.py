@@ -28,7 +28,7 @@ with open("dejavu.cnf") as f:
     config = json.load(f)
 djv = Dejavu(config)
 recognizer = FileRecognizer(djv)
-clipsData = []
+clipsData = {}
 
 
 def getMetaData(clipPath):
@@ -120,7 +120,11 @@ def findClipAlarms(clipPath):
         'recording_end_ut' : recordingEndUT,
     }
 
-    clipsData.append(clipData)
+    # Init camera dictionary if do not exists.
+    if not camera in clipsData:
+        clipsData[camera] = []
+    # Add clip to camera clips data.
+    clipsData[camera].append(clipData)
 
     for second in sorted(matches['matches']):
         match = matches['matches'][second]
