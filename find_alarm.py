@@ -215,7 +215,6 @@ if __name__ == '__main__':
             clipPath = "%s/%s" % (srcDir, filename)
             # Merge new matches to our matches result.
             matches.extend(findClipAlarms(clipPath))
-            print clipsData
             print "\n"
 
     # Group matches by Camera.
