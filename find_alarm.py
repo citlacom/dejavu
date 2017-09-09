@@ -71,7 +71,7 @@ def findClipAlarms(clipPath):
 
     # Add time to the camera clock that was behind, this delta will be added to the defined camera.
     clockAdjust = {
-        'EOS_DIGITAL' : timedelta(milliseconds=3595311),
+        'EOS_DIGITAL' : timedelta(milliseconds=3600500),
         'CANON' : timedelta(milliseconds=0),
     }
 
